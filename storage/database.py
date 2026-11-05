@@ -1,6 +1,7 @@
 """SQLite initialization and basic DNS event persistence."""
 
 import sqlite3
+import uuid
 from pathlib import Path
 
 from storage.models import DnsEvent
@@ -66,6 +67,64 @@ def insert_event(path: str | Path, event: DnsEvent) -> None:
                 event.answers_json,
                 event.ttl,
                 event.correlation_status,
+            ),
+        )
+
+
+def update_query_from_response(path: str | Path, response: DnsEvent) -> None:
+    """Finalize the persisted query row when its response is observed."""
+    if not response.is_response:
+        return
+    initialize_database(path)
+    with sqlite3.connect(path) as connection:
+        connection.execute(
+            """
+            UPDATE dns_events
+            SET correlation_status = ?, response_code = ?, answers_json = ?, ttl = ?
+            WHERE event_id = (
+                SELECT event_id FROM dns_events
+                WHERE is_response = 0 AND correlation_status = 'pending'
+                  AND source_ip = ? AND source_port = ?
+                  AND destination_ip = ? AND destination_port = ?
+                  AND transport = ? AND transaction_id = ?
+                  AND qname = ? AND qtype = ?
+                ORDER BY observed_at DESC LIMIT 1
+            )
+            """,
+            (
+                response.correlation_status,
+                response.response_code,
+                response.answers_json,
+                response.ttl,
+                response.destination_ip,
+                response.destination_port,
+                response.source_ip,
+                response.source_port,
+                response.transport,
+                response.transaction_id,
+                response.qname,
+                response.qtype,
+            ),
+        )
+
+
+def insert_alert(path: str | Path, client_ip: str, domain: str, alert, score: int = 0) -> None:
+    """Persist a deduplicated detector alert."""
+    initialize_database(path)
+    with sqlite3.connect(path) as connection:
+        connection.execute(
+            """
+            INSERT OR IGNORE INTO alerts
+            (alert_id, observed_at, client_ip, domain, rule, evidence, score)
+            VALUES (?, datetime('now'), ?, ?, ?, ?, ?)
+            """,
+            (
+                str(uuid.uuid5(uuid.NAMESPACE_URL, f"{client_ip}|{domain}|{alert.rule}|{alert.evidence}")),
+                client_ip,
+                domain,
+                alert.rule,
+                alert.evidence,
+                score,
             ),
         )
 

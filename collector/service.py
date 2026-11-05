@@ -6,6 +6,7 @@ import logging
 import os
 import time
 import threading
+from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -14,8 +15,15 @@ import yaml
 from scapy.sendrecv import sniff
 
 from collector.dns_parser import packet_to_event
+from detectors.basic_rules import evaluate_basic_rules
 from processing.correlator import DnsCorrelator
-from storage.database import initialize_database, insert_event
+from processing.features import extract_features
+from storage.database import (
+    initialize_database,
+    insert_alert,
+    insert_event,
+    update_query_from_response,
+)
 
 LOGGER = logging.getLogger(__name__)
 
@@ -64,6 +72,7 @@ class DnsCollector:
         self.health = CollectorHealth()
         self._stop_event = threading.Event()
         self.correlator = DnsCorrelator()
+        self.event_history = deque(maxlen=5000)
 
     def _write_health(self) -> None:
         snapshot = self.health.snapshot()
@@ -98,7 +107,23 @@ class DnsCollector:
             with self.health._lock:
                 self.health.malformed_packets += 1
             return
-        insert_event(self.database_path, self.correlator.observe(event))
+        observed = self.correlator.observe(event)
+        insert_event(self.database_path, observed)
+        if observed.is_response and observed.correlation_status == "matched":
+            update_query_from_response(self.database_path, observed)
+        self.event_history.append(observed)
+        features = extract_features(observed, list(self.event_history))
+        response_count = sum(
+            item.is_response and item.response_code is not None
+            for item in self.event_history
+        )
+        for alert in evaluate_basic_rules(features, response_count=response_count):
+            insert_alert(
+                self.database_path,
+                observed.source_ip if not observed.is_response else observed.destination_ip,
+                observed.qname,
+                alert,
+            )
         with self.health._lock:
             self.health.events_persisted += 1
             self.health.last_event_at = event.observed_at

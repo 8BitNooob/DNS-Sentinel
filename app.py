@@ -88,7 +88,11 @@ def live_traffic(events: pd.DataFrame) -> None:
     )
     displayed = events if show_responses else workstation_queries(events)
     displayed = format_event_timestamps(displayed)
-    st.caption("By default, this view shows workstation-originated DNS queries. The collector still stores both queries and responses.")
+    st.caption(
+        "By default, this view shows workstation-originated DNS queries. "
+        "Pending means no matching response was observed; it is not an NXDOMAIN result. "
+        "NXDOMAIN requires response_code=3 in an observed response."
+    )
     st.dataframe(displayed, use_container_width=True, hide_index=True)
     st.download_button("Export traffic CSV", displayed.to_csv(index=False), "dns-traffic.csv", "text/csv")
 

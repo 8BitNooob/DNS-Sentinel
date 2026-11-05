@@ -91,3 +91,9 @@ Dashboard event timestamps are displayed in IST. Live Traffic defaults to
 workstation-originated queries; enable “Include DNS responses” when resolver
 responses are needed for investigation. The dashboard automatically refreshes
 every five seconds.
+
+An event marked `pending` means the collector has not observed a matching
+response yet. It is not equivalent to NXDOMAIN: NXDOMAIN is reported only
+when an observed DNS response has response code `3`. A timeout, cache effect,
+resolver policy, asymmetric visibility, or encrypted DNS can leave a query
+pending.
