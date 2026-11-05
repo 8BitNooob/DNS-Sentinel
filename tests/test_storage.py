@@ -1,7 +1,7 @@
 import sqlite3
 from datetime import datetime, timezone
 
-from storage.database import count_events, insert_event, update_query_from_response
+from storage.database import count_events, insert_event, update_query_from_response, update_query_status
 from storage.models import DnsEvent
 
 
@@ -50,3 +50,15 @@ def test_response_finalizes_persisted_query(tmp_path):
             "SELECT correlation_status, response_code FROM dns_events WHERE event_id = 'query'"
         ).fetchone()
     assert row == ("matched", 3)
+
+
+def test_alert_deduplication_uses_client_and_rule(tmp_path):
+    from detectors.basic_rules import RuleAlert
+    from storage.database import insert_alert
+
+    database_path = tmp_path / "alerts.sqlite3"
+    alert = RuleAlert("high_query_rate", "per_minute=100")
+    insert_alert(database_path, "192.168.42.66", "one.example", alert, dedupe_domain="__client__")
+    insert_alert(database_path, "192.168.42.66", "two.example", alert, dedupe_domain="__client__")
+    with sqlite3.connect(database_path) as connection:
+        assert connection.execute("SELECT COUNT(*) FROM alerts").fetchone()[0] == 1

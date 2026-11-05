@@ -14,6 +14,7 @@ class DnsCorrelator:
         self.max_pending = max_pending
         self.pending: dict[tuple[str, int, str, str, str], DnsEvent] = {}
         self.completed: dict[tuple[str, int, str, str, str], DnsEvent] = {}
+        self.last_expired: list[DnsEvent] = []
 
     @staticmethod
     def _key(event: DnsEvent) -> tuple[str, int, str, str, str]:
@@ -23,17 +24,25 @@ class DnsCorrelator:
             client, resolver = event.source_ip, event.destination_ip
         return client, event.transaction_id, event.qname, event.qtype, event.transport
 
-    def _expire(self, now) -> None:
+    def _expire(self, now) -> list[DnsEvent]:
         expired = [
             key for key, event in self.pending.items()
             if now - event.observed_at > self.expiry
         ]
+        expired_events = []
         for key in expired:
             event = self.pending.pop(key)
-            self.completed[key] = replace(event, correlation_status="unmatched_query")
+            expired_event = replace(event, correlation_status="unmatched_query")
+            self.completed[key] = expired_event
+            expired_events.append(expired_event)
+        return expired_events
+
+    def expire(self, now) -> list[DnsEvent]:
+        """Finalize queries whose response window has elapsed."""
+        return self._expire(now)
 
     def observe(self, event: DnsEvent) -> DnsEvent:
-        self._expire(event.observed_at)
+        self.last_expired = self._expire(event.observed_at)
         key = self._key(event)
         if not event.is_response:
             if key in self.pending:

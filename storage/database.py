@@ -108,7 +108,24 @@ def update_query_from_response(path: str | Path, response: DnsEvent) -> None:
         )
 
 
-def insert_alert(path: str | Path, client_ip: str, domain: str, alert, score: int = 0) -> None:
+def update_query_status(path: str | Path, event: DnsEvent) -> None:
+    """Persist a non-response correlation status on its original query."""
+    initialize_database(path)
+    with sqlite3.connect(path) as connection:
+        connection.execute(
+            "UPDATE dns_events SET correlation_status = ? WHERE event_id = ?",
+            (event.correlation_status, event.event_id),
+        )
+
+
+def insert_alert(
+    path: str | Path,
+    client_ip: str,
+    domain: str,
+    alert,
+    score: int = 0,
+    dedupe_domain: str | None = None,
+) -> None:
     """Persist a deduplicated detector alert."""
     initialize_database(path)
     with sqlite3.connect(path) as connection:
@@ -119,7 +136,7 @@ def insert_alert(path: str | Path, client_ip: str, domain: str, alert, score: in
             VALUES (?, datetime('now'), ?, ?, ?, ?, ?)
             """,
             (
-                str(uuid.uuid5(uuid.NAMESPACE_URL, f"{client_ip}|{domain}|{alert.rule}|{alert.evidence}")),
+                str(uuid.uuid5(uuid.NAMESPACE_URL, f"{client_ip}|{dedupe_domain or domain}|{alert.rule}")),
                 client_ip,
                 domain,
                 alert.rule,

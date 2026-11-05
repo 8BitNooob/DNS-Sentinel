@@ -22,6 +22,7 @@ from storage.database import (
     initialize_database,
     insert_alert,
     insert_event,
+    update_query_status,
     update_query_from_response,
 )
 
@@ -108,6 +109,7 @@ class DnsCollector:
                 self.health.malformed_packets += 1
             return
         observed = self.correlator.observe(event)
+        self._persist_expired(self.correlator.last_expired if hasattr(self.correlator, "last_expired") else [])
         insert_event(self.database_path, observed)
         if observed.is_response and observed.correlation_status == "matched":
             update_query_from_response(self.database_path, observed)
@@ -118,16 +120,22 @@ class DnsCollector:
             for item in self.event_history
         )
         for alert in evaluate_basic_rules(features, response_count=response_count):
+            dedupe_domain = "__client__" if alert.rule in {"high_query_rate", "high_nxdomain_rate"} else None
             insert_alert(
                 self.database_path,
                 observed.source_ip if not observed.is_response else observed.destination_ip,
                 observed.qname,
                 alert,
+                dedupe_domain=dedupe_domain,
             )
         with self.health._lock:
             self.health.events_persisted += 1
             self.health.last_event_at = event.observed_at
         self._write_health()
+
+    def _persist_expired(self, events) -> None:
+        for event in events:
+            update_query_status(self.database_path, event)
 
     def run(self) -> None:
         """Run until stop is requested, updating health state throughout."""
@@ -145,6 +153,9 @@ class DnsCollector:
                     prn=self.handle_packet,
                     store=False,
                     timeout=1,
+                )
+                self._persist_expired(
+                    self.correlator.expire(datetime.now(timezone.utc))
                 )
                 self._write_health()
         except Exception as error:
