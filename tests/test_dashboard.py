@@ -14,6 +14,19 @@ def test_load_health_reads_status(tmp_path):
     assert load_health(health_path)["status"] == "running"
 
 
+def test_load_health_handles_permission_error(monkeypatch, tmp_path):
+    health_path = tmp_path / "locked.json"
+    health_path.write_text("{}", encoding="utf-8")
+    original_open = type(health_path).open
+
+    def denied_open(*args, **kwargs):
+        raise PermissionError("locked")
+
+    monkeypatch.setattr(type(health_path), "open", denied_open)
+    assert load_health(health_path)["status"] == "unknown"
+    monkeypatch.setattr(type(health_path), "open", original_open)
+
+
 def test_collector_running_rejects_missing_pid():
     assert not collector_running({"status": "running"})
 

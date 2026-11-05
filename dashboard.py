@@ -5,6 +5,7 @@ import os
 import subprocess
 import sys
 import ctypes
+import time
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -55,11 +56,22 @@ def load_table(path: str | Path, table: str, limit: int = 500) -> pd.DataFrame:
 
 
 def load_health(path: str | Path) -> dict[str, object]:
-    try:
-        with Path(path).open(encoding="utf-8") as file:
-            return json.load(file)
-    except (FileNotFoundError, json.JSONDecodeError):
-        return {"status": "not_started", "error": None}
+    health_path = Path(path)
+    for attempt in range(3):
+        try:
+            with health_path.open(encoding="utf-8") as file:
+                return json.load(file)
+        except (FileNotFoundError, json.JSONDecodeError):
+            return {"status": "not_started", "error": None}
+        except PermissionError:
+            if attempt < 2:
+                time.sleep(0.05)
+                continue
+            return {
+                "status": "unknown",
+                "error": "Collector health is temporarily unavailable.",
+            }
+    return {"status": "unknown", "error": "Collector health is unavailable."}
 
 
 def collector_running(health: dict[str, object]) -> bool:
