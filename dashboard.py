@@ -6,10 +6,29 @@ import subprocess
 import sys
 import ctypes
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import pandas as pd
 
 from storage.database import initialize_database
+
+IST = ZoneInfo("Asia/Kolkata")
+
+
+def format_event_timestamps(events: pd.DataFrame) -> pd.DataFrame:
+    """Return event data with readable India Standard Time timestamps."""
+    formatted = events.copy()
+    if "observed_at" in formatted.columns:
+        timestamps = pd.to_datetime(formatted["observed_at"], utc=True).dt.tz_convert(IST)
+        formatted["observed_at"] = timestamps.dt.strftime("%d %b %Y, %I:%M:%S %p IST")
+    return formatted
+
+
+def workstation_queries(events: pd.DataFrame) -> pd.DataFrame:
+    """Select DNS queries originating from the monitored workstation."""
+    if "is_response" not in events.columns:
+        return events.copy()
+    return events.loc[~events["is_response"].astype(bool)].copy()
 
 
 def load_events(path: str | Path, limit: int = 5000) -> pd.DataFrame:

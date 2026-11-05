@@ -87,3 +87,7 @@ The dashboard has Overview, Live Traffic, Alerts/Incidents, Client Profiles,
 Domain Investigation, Offline Analysis, and Settings pages. Its start/stop
 controls launch the Windows collector as a separate process; refreshing or
 closing the dashboard does not intentionally stop collection.
+Dashboard event timestamps are displayed in IST. Live Traffic defaults to
+workstation-originated queries; enable “Include DNS responses” when resolver
+responses are needed for investigation. The dashboard automatically refreshes
+every five seconds.

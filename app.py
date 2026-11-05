@@ -13,6 +13,8 @@ from dashboard import (
     load_table,
     start_collector,
     stop_collector,
+    format_event_timestamps,
+    workstation_queries,
 )
 
 ROOT = Path(__file__).parent
@@ -58,6 +60,8 @@ def collector_controls() -> None:
 
 def overview(events: pd.DataFrame) -> None:
     st.header("Overview")
+    events = workstation_queries(events)
+    display_events = format_event_timestamps(events)
     health = load_health(health_path())
     columns = st.columns(4)
     columns[0].metric("Events", len(events))
@@ -72,14 +76,21 @@ def overview(events: pd.DataFrame) -> None:
     per_minute = chart.set_index("observed_at").resample("1min").size().rename("queries")
     st.subheader("DNS activity")
     st.line_chart(per_minute)
-    st.dataframe(events.head(25), use_container_width=True, hide_index=True)
+    st.dataframe(display_events.head(25), use_container_width=True, hide_index=True)
 
 
 def live_traffic(events: pd.DataFrame) -> None:
     st.header("Live Traffic")
-    st.caption("Refresh uses SQLite; it does not control collector lifecycle.")
-    st.dataframe(events, use_container_width=True, hide_index=True)
-    st.download_button("Export traffic CSV", events.to_csv(index=False), "dns-traffic.csv", "text/csv")
+    show_responses = st.checkbox(
+        "Include DNS responses",
+        value=False,
+        help="Disabled shows only queries originating from this workstation. Enable it to inspect resolver responses.",
+    )
+    displayed = events if show_responses else workstation_queries(events)
+    displayed = format_event_timestamps(displayed)
+    st.caption("By default, this view shows workstation-originated DNS queries. The collector still stores both queries and responses.")
+    st.dataframe(displayed, use_container_width=True, hide_index=True)
+    st.download_button("Export traffic CSV", displayed.to_csv(index=False), "dns-traffic.csv", "text/csv")
 
 
 def alerts_incidents(path: Path) -> None:
@@ -101,7 +112,7 @@ def domain_investigation(events: pd.DataFrame) -> None:
     st.header("Domain Investigation")
     domain = st.text_input("Domain contains", "")
     filtered = events[events["qname"].str.contains(domain, case=False, na=False)] if domain else events
-    st.dataframe(filtered, use_container_width=True, hide_index=True)
+    st.dataframe(format_event_timestamps(filtered), use_container_width=True, hide_index=True)
 
 
 def offline_analysis() -> None:
@@ -118,16 +129,7 @@ def settings_page() -> None:
     st.caption("Windows-only capture uses Npcap and Scapy. Dashboard refresh does not restart collection.")
 
 
-def main() -> None:
-    st.set_page_config(page_title="DNS Sentinel", page_icon=":shield:", layout="wide")
-    st.title("DNS Sentinel")
-    collector_controls()
-    events = load_events(database_path())
-    page = st.sidebar.radio(
-        "Page",
-        ["Overview", "Live Traffic", "Alerts / Incidents", "Client Profiles",
-         "Domain Investigation", "Offline Analysis", "Settings"],
-    )
+def render_page(page: str, events: pd.DataFrame) -> None:
     if page == "Overview":
         overview(events)
     elif page == "Live Traffic":
@@ -142,6 +144,23 @@ def main() -> None:
         offline_analysis()
     else:
         settings_page()
+
+
+@st.fragment(run_every=5)
+def auto_refreshing_page(page: str) -> None:
+    render_page(page, load_events(database_path()))
+
+
+def main() -> None:
+    st.set_page_config(page_title="DNS Sentinel", page_icon=":shield:", layout="wide")
+    st.title("DNS Sentinel")
+    collector_controls()
+    page = st.sidebar.radio(
+        "Page",
+        ["Overview", "Live Traffic", "Alerts / Incidents", "Client Profiles",
+         "Domain Investigation", "Offline Analysis", "Settings"],
+    )
+    auto_refreshing_page(page)
 
 
 if __name__ == "__main__":
