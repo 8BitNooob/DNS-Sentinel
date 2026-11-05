@@ -71,3 +71,8 @@ Windows capture only sees traffic visible on the selected Npcap interface.
 Encrypted DoH/DoT names are not available to this ordinary DNS parser, and
 answer changes may be legitimate CDN, load-balancing, geo-routing, or dynamic
 DNS behavior.
+
+Day 5 adds rolling client baselines, explainable 0-100 risk scoring, SQLite
+tables for analysis state, incident grouping/deduplication, and expiring
+allowlist suppression with a required reason. The score prioritizes evidence;
+it is not a probability of compromise.

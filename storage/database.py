@@ -4,6 +4,7 @@ import sqlite3
 from pathlib import Path
 
 from storage.models import DnsEvent
+from storage.day5 import DAY5_SCHEMA
 
 
 CREATE_DNS_EVENTS = """
@@ -33,6 +34,7 @@ def initialize_database(path: str | Path) -> None:
     database_path.parent.mkdir(parents=True, exist_ok=True)
     with sqlite3.connect(database_path) as connection:
         connection.execute(CREATE_DNS_EVENTS)
+        connection.executescript(DAY5_SCHEMA)
 
 
 def insert_event(path: str | Path, event: DnsEvent) -> None:
@@ -73,4 +75,3 @@ def count_events(path: str | Path) -> int:
     initialize_database(path)
     with sqlite3.connect(path) as connection:
         return connection.execute("SELECT COUNT(*) FROM dns_events").fetchone()[0]
-
