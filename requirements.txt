@@ -2,8 +2,8 @@ numpy
 pandas
 plotly
 pytest
+PyYAML
 scapy
 sqlalchemy
 streamlit
 tldextract
-

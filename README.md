@@ -42,3 +42,13 @@ run as administrator.
 
 See the workplan for architecture, thresholds, limitations, and definition of
 done.
+
+## Run the Windows collector
+
+```powershell
+.\.venv\Scripts\python.exe -m collector.service --config config/settings.yaml
+```
+
+Stop it with `Ctrl+C`. The collector is a separate process and writes
+canonical DNS events to the configured SQLite database; the Streamlit
+dashboard does not own its lifecycle.

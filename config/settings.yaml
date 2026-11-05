@@ -1,7 +1,7 @@
 database_path: outputs/dns_sentinel.sqlite3
 capture:
   interface: "\\Device\\NPF_{E70302F4-45E9-458F-A6B4-5AFBED00B525}"
-  enabled: false
+  enabled: true
   filter: "udp port 53 or tcp port 53"
 dashboard:
   refresh_seconds: 5
