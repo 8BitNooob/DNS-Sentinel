@@ -1,6 +1,4 @@
 import json
-from pathlib import Path
-
 from dashboard import collector_running, load_health
 
 
@@ -16,3 +14,7 @@ def test_load_health_reads_status(tmp_path):
 
 def test_collector_running_rejects_missing_pid():
     assert not collector_running({"status": "running"})
+
+
+def test_collector_running_rejects_non_running_status():
+    assert not collector_running({"status": "stopped", "pid": 1})

@@ -4,6 +4,7 @@ import argparse
 import json
 import logging
 import os
+import time
 import threading
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -68,9 +69,20 @@ class DnsCollector:
         snapshot = self.health.snapshot()
         snapshot["pid"] = os.getpid()
         self.health_path.parent.mkdir(parents=True, exist_ok=True)
-        temporary = self.health_path.with_suffix(".tmp")
-        temporary.write_text(json.dumps(snapshot, default=str), encoding="utf-8")
-        temporary.replace(self.health_path)
+        temporary = self.health_path.with_name(
+            f"{self.health_path.stem}.{os.getpid()}.tmp"
+        )
+        payload = json.dumps(snapshot, default=str)
+        for attempt in range(3):
+            try:
+                temporary.write_text(payload, encoding="utf-8")
+                os.replace(temporary, self.health_path)
+                return
+            except PermissionError:
+                if attempt == 2:
+                    LOGGER.warning("Could not update collector health file", exc_info=True)
+                    return
+                time.sleep(0.05)
 
     def stop(self) -> None:
         """Request a graceful stop after the current capture interval."""

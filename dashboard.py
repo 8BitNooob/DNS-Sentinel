@@ -4,6 +4,7 @@ import json
 import os
 import subprocess
 import sys
+import ctypes
 from pathlib import Path
 
 import pandas as pd
@@ -46,19 +47,37 @@ def collector_running(health: dict[str, object]) -> bool:
     pid = health.get("pid")
     if not isinstance(pid, int):
         return False
-    try:
-        os.kill(pid, 0)
-    except (OSError, ProcessLookupError):
-        return False
+    if sys.platform == "win32":
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        handle = kernel32.OpenProcess(0x1000, False, pid)
+        if not handle:
+            return False
+        exit_code = ctypes.c_ulong()
+        try:
+            alive = bool(kernel32.GetExitCodeProcess(handle, ctypes.byref(exit_code)))
+        finally:
+            kernel32.CloseHandle(handle)
+        if not alive or exit_code.value != 259:
+            return False
+    else:
+        try:
+            os.kill(pid, 0)
+        except (OSError, ProcessLookupError):
+            return False
     return health.get("status") == "running"
 
 
 def start_collector(config_path: str | Path) -> subprocess.Popen:
     stop_path = Path(config_path).resolve().parent.parent / "outputs" / "collector.stop"
     stop_path.unlink(missing_ok=True)
+    flags = (
+        getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
+        | getattr(subprocess, "DETACHED_PROCESS", 0)
+        | getattr(subprocess, "CREATE_NO_WINDOW", 0)
+    )
     return subprocess.Popen(
         [sys.executable, "-m", "collector.service", "--config", str(config_path)],
-        creationflags=getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0),
+        creationflags=flags,
         cwd=Path(config_path).resolve().parent.parent,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
