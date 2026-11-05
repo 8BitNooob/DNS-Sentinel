@@ -25,8 +25,10 @@ pip install -r requirements.txt
 streamlit run app.py
 ```
 
-Npcap is required for Windows live capture. Keep elevated permissions limited
-to the collector when required; the dashboard should not run as administrator.
+Npcap is required for Windows live capture. This project targets Windows
+directly and does not use Ubuntu, WSL, or a virtual machine. Keep elevated
+permissions limited to the collector when required; the dashboard should not
+run as administrator.
 
 ## Project layout
 
@@ -40,4 +42,3 @@ to the collector when required; the dashboard should not run as administrator.
 
 See the workplan for architecture, thresholds, limitations, and definition of
 done.
-

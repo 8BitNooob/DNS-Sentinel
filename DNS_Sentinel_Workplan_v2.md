@@ -1,7 +1,7 @@
 # DNS Sentinel — 7-Day Project Workplan
 
 **Project:** DNS Sentinel: Real-Time DNS Security Monitoring, Anomaly Detection and Threat Analysis System  
-**Team:** 2 members | **Timeline:** 7 days | **Environment:** Windows + Ubuntu VM  
+**Team:** 2 members | **Timeline:** 7 days | **Environment:** Windows only
 **Scope:** Own-workstation DNS traffic initially | **Storage:** SQLite | **Dashboard:** Streamlit  
 **Mode:** Detection, monitoring, analysis and alerting only. Prevention and automatic blocking are excluded.
 
@@ -51,7 +51,7 @@ OFFLINE: CSV / PCAP / Zeek logs -> adapters -> same canonical events
 ### Collection and processing
 - Background live DNS packet observation on a selected interface.
 - Windows capture through Npcap + Scapy.
-- Ubuntu tools: tcpdump and Zeek if feasible.
+- Windows packet capture through Npcap and Scapy.
 - Offline CSV, PCAP, and Zeek-log ingestion.
 - One normalized DNS event schema for live and offline inputs.
 - Capture-health and visibility status.
@@ -210,13 +210,11 @@ Do not commit `.venv`, `.env`, secrets, private captures, SQLite databases, larg
 3. Create/activate a Python virtual environment.
 4. Install initial Python dependencies.
 5. Install Npcap from its official source.
-6. Confirm Ubuntu VM exists and has network access.
-7. Install Python and basic packet tools in Ubuntu; install Zeek if feasible.
-8. Use Scapy to list Windows interfaces and identify the workstation's active interface.
-9. Generate ordinary DNS activity and verify that packets are visible.
-10. Save a small, non-sensitive sample PCAP if practical and inspect it in Wireshark.
-11. Agree on the normalized DNS event schema.
-12. Initialize SQLite and insert/read one sample event.
+6. Use Scapy to list Windows interfaces and identify the workstation's active interface.
+7. Generate ordinary DNS activity and verify that packets are visible.
+8. Save a small, non-sensitive sample PCAP if practical and inspect it in Wireshark.
+9. Agree on the normalized DNS event schema.
+10. Initialize SQLite and insert/read one sample event.
 
 **Windows commands**
 ```powershell
