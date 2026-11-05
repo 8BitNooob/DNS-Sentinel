@@ -11,6 +11,7 @@ import yaml
 from scapy.sendrecv import sniff
 
 from collector.dns_parser import packet_to_event
+from processing.correlator import DnsCorrelator
 from storage.database import initialize_database, insert_event
 
 LOGGER = logging.getLogger(__name__)
@@ -55,6 +56,7 @@ class DnsCollector:
         self.database_path = Path(database_path)
         self.health = CollectorHealth()
         self._stop_event = threading.Event()
+        self.correlator = DnsCorrelator()
 
     def stop(self) -> None:
         """Request a graceful stop after the current capture interval."""
@@ -69,7 +71,7 @@ class DnsCollector:
             with self.health._lock:
                 self.health.malformed_packets += 1
             return
-        insert_event(self.database_path, event)
+        insert_event(self.database_path, self.correlator.observe(event))
         with self.health._lock:
             self.health.events_persisted += 1
             self.health.last_event_at = event.observed_at

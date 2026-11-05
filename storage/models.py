@@ -21,4 +21,3 @@ class DnsEvent:
     answers_json: str = "[]"
     ttl: int | None = None
     correlation_status: str = "unclassified"
-

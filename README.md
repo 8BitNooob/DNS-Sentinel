@@ -52,3 +52,13 @@ done.
 Stop it with `Ctrl+C`. The collector is a separate process and writes
 canonical DNS events to the configured SQLite database; the Streamlit
 dashboard does not own its lifecycle.
+
+Offline inputs use the same canonical event and processing functions:
+
+```powershell
+.\.venv\Scripts\python.exe -c "from adapters.pcap_adapter import read_pcap_events; print(list(read_pcap_events('data/pcaps/sample.pcap')))"
+```
+
+Day 3 includes bounded query/response correlation, public-suffix-aware domain
+features, and explainable basic rules for long names, long labels,
+high-entropy labels, query rate, and NXDOMAIN rate.
