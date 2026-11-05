@@ -76,3 +76,14 @@ Day 5 adds rolling client baselines, explainable 0-100 risk scoring, SQLite
 tables for analysis state, incident grouping/deduplication, and expiring
 allowlist suppression with a required reason. The score prioritizes evidence;
 it is not a probability of compromise.
+
+Run the dashboard with:
+
+```powershell
+.\.venv\Scripts\python.exe -m streamlit run app.py
+```
+
+The dashboard has Overview, Live Traffic, Alerts/Incidents, Client Profiles,
+Domain Investigation, Offline Analysis, and Settings pages. Its start/stop
+controls launch the Windows collector as a separate process; refreshing or
+closing the dashboard does not intentionally stop collection.

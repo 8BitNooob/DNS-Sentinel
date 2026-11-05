@@ -1,4 +1,6 @@
 database_path: outputs/dns_sentinel.sqlite3
+health_path: outputs/collector_health.json
+stop_path: outputs/collector.stop
 capture:
   interface: "\\Device\\NPF_{E70302F4-45E9-458F-A6B4-5AFBED00B525}"
   enabled: true
