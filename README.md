@@ -62,3 +62,12 @@ Offline inputs use the same canonical event and processing functions:
 Day 3 includes bounded query/response correlation, public-suffix-aware domain
 features, and explainable basic rules for long names, long labels,
 high-entropy labels, query rate, and NXDOMAIN rate.
+
+Day 4 adds tunneling-like indicators, answer and TTL history, trusted
+investigation baselines, and protocol-validation signals. These are
+prioritization and investigation signals; answer changes do not prove
+spoofing, and tunneling-like behavior is not a definitive tunneling claim.
+Windows capture only sees traffic visible on the selected Npcap interface.
+Encrypted DoH/DoT names are not available to this ordinary DNS parser, and
+answer changes may be legitimate CDN, load-balancing, geo-routing, or dynamic
+DNS behavior.

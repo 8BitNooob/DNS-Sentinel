@@ -47,6 +47,11 @@ class DnsCorrelator:
         query = self.pending.pop(key, None)
         if query is None:
             if key in self.completed:
+                previous = self.completed[key]
+                if (previous.answers_json, previous.response_code, previous.ttl) != (
+                    event.answers_json, event.response_code, event.ttl
+                ):
+                    return replace(event, correlation_status="conflicting_response")
                 return replace(event, correlation_status="duplicate_response")
             return replace(event, correlation_status="unmatched_response")
         if event.observed_at < query.observed_at:
