@@ -1,0 +1,12 @@
+domain:
+  full_length: 100
+  label_length: 50
+  entropy: 3.5
+traffic:
+  queries_per_client_window: 60
+  client_window_seconds: 60
+nxdomain:
+  minimum_responses: 20
+  rate: 0.5
+  window_seconds: 300
+

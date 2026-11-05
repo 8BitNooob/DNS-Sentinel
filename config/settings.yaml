@@ -1,0 +1,8 @@
+database_path: outputs/dns_sentinel.sqlite3
+capture:
+  interface: null
+  enabled: false
+  filter: "udp port 53 or tcp port 53"
+dashboard:
+  refresh_seconds: 5
+

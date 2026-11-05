@@ -1,0 +1,9 @@
+numpy
+pandas
+plotly
+pytest
+scapy
+sqlalchemy
+streamlit
+tldextract
+
